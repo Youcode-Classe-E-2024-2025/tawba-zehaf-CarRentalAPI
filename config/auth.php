@@ -34,10 +34,9 @@ return [
     | Supported: "session"
     |
     */
-
     'guards' => [
-        'web' => [
-            'driver' => 'session',
+        'api' => [
+            'driver' => 'sanctum',
             'provider' => 'users',
         ],
     ],
