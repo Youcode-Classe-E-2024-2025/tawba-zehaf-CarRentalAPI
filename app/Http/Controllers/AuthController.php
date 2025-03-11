@@ -2,68 +2,115 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Auth;
+use App\Models\User;
 
 class AuthController extends Controller
 {
     /**
-     * Display a listing of the resource.
+     * @OA\Post(
+     *     path="/api/login",
+     *     summary="Login user",
+     *     tags={"Authentication"},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"email","password"},
+     *             @OA\Property(property="email", type="string", example="user@example.com"),
+     *             @OA\Property(property="password", type="string", example="password123")
+     *         )
+     *     ),
+     *     @OA\Response(response=200, description="Successful login",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="user", type="object"),
+     *             @OA\Property(property="token", type="string")
+     *         )
+     *     ),
+     *     @OA\Response(response=401, description="Unauthorized")
+     * )
      */
-    public function index()
+    public function login(Request $request)
     {
-        return User::all();
+        $credentials = $request->only('email', 'password');
+
+        if (Auth::attempt($credentials)) {
+            $user = Auth::user();
+            $token = $user->createToken('authToken')->plainTextToken;
+            return response()->json(['user' => $user, 'token' => $token], 200);
+        }
+
+        return response()->json(['message' => 'Unauthorized'], 401);
     }
+/**
+ * @OA\Post(
+ *     path="/api/logout",
+ *     summary="Logout user",
+ *     description="Revokes all tokens for the authenticated user",
+ *     operationId="logout",
+ *     tags={"Authentication"},
+ *     security={{"sanctum":{}}},
+ *     @OA\Response(
+ *         response=200,
+ *         description="Logged out successfully",
+ *         @OA\JsonContent(
+ *             @OA\Property(property="message", type="string", example="Logged out successfully")
+ *         )
+ *     ),
+ *     @OA\Response(
+ *         response=401,
+ *         description="Unauthenticated",
+ *         @OA\JsonContent(
+ *             @OA\Property(property="message", type="string", example="Unauthenticated")
+ *         )
+ *     )
+ * )
+ */
+public function logout(Request $request)
+{
+    $request->user()->tokens()->delete();
+    return response()->json(['message' => 'Logged out successfully'], 200);
+}
 
     /**
-     * Store a newly created resource in storage.
+     * @OA\Post(
+     *     path="/api/register",
+     *     summary="Register a new user",
+     *     tags={"Authentication"},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"name","email","password"},
+     *             @OA\Property(property="name", type="string", example="John Doe"),
+     *             @OA\Property(property="email", type="string", example="user@example.com"),
+     *             @OA\Property(property="password", type="string", example="password123")
+     *         )
+     *     ),
+     *     @OA\Response(response=201, description="User registered successfully",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="user", type="object"),
+     *             @OA\Property(property="token", type="string")
+     *         )
+     *     ),
+     *     @OA\Response(response=422, description="Validation error")
+     * )
      */
-    public function store(Request $request)
+    public function register(Request $request)
     {
-        $request->validate([
-            'name' => 'required',
-            'email' => 'required',
-            'password' => 'required',
+        $validatedData = $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|string|email|unique:users',
+            'password' => 'required|string|min:8',
         ]);
 
         $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => bcrypt($request->password),
+            'name' => $validatedData['name'],
+            'email' => $validatedData['email'],
+            'password' => Hash::make($validatedData['password']),
         ]);
 
-        return response()->json([
-            'message' => 'User created successfully',
-            'user' => $user,
-            'token' => $user->createToken('auth_token')->plainTextToken
-        ], 201);
-    }
-
-    /**
-     * Display the specified resource.
-     */
-    public function show(User $user)
-    {
-        return $user;
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, User $user)
-    {
-        $user->update($request->all());
-        return $user;
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(User $user)
-    {
-        $user->delete();
-        return response()->json([
-            'message' => 'User deleted successfully',
-        ]);
+        $token = $user->createToken('authToken')->plainTextToken;
+        return response()->json(['user' => $user, 'token' => $token], 201);
     }
 }

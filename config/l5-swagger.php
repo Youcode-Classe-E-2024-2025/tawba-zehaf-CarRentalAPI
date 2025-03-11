@@ -306,7 +306,7 @@ return [
                      */
                     'use_pkce_with_authorization_code_grant' => false,
                 ],
-            ],
+            ]
         ],
         /*
          * Constants which can be used in annotations
