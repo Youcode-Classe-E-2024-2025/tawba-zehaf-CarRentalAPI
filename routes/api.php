@@ -18,11 +18,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/cars/{id}', [CarController::class, 'delete']);
 });
 
-
-
-// Route::middleware('auth:sanctum')->get('/rentals', [RentalsController::class, 'getUserRentals']);
-
-
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/rentals', [RentalController::class, 'create']);
     Route::get('/rentals', [RentalController::class, 'getUserRentals']);

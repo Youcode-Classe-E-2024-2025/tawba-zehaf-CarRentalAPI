@@ -11,14 +11,17 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('rentals', function (Blueprint $table) {
-            $table->id();
-            $table->integer('user_id');
-            $table->integer('car_id');
-            $table->date('start_date');
-            $table->date('end_date');
-            $table->timestamps();
-        });
+       
+    Schema::create('rentals', function (Blueprint $table) {
+        $table->id();
+        $table->foreignId('user_id')->constrained()->onDelete('cascade');
+        $table->foreignId('car_id')->constrained()->onDelete('cascade');
+        $table->date('start_date');
+        $table->date('end_date');
+        $table->decimal('total_amount', 8, 2);
+        $table->enum('status', ['pending', 'completed', 'cancelled']);
+        $table->timestamps();
+    });
     }
 
     /**
