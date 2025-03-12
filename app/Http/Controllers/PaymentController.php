@@ -5,6 +5,9 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Stripe\Stripe;
 use Stripe\Charge;
+use Stripe\PaymentIntent;
+
+use Stripe\Checkout\Session;
 use Stripe\Exception\ApiErrorException;
 use App\Models\Payment;
 use App\Models\Rental;
@@ -164,24 +167,63 @@ class PaymentController extends Controller
      */
     public function createOne(Request $request)
     {
+        // Validate the request data
         $validatedData = $request->validate([
             'rental_id' => 'required|exists:rentals,id',
             'amount' => 'required|numeric',
             'method' => 'required|in:credit_card,paypal,cash',
             'status' => 'required|in:pending,completed,failed',
         ]);
-
+    
+        // Check if the rental belongs to the authenticated user
         $rental = Rental::where('user_id', Auth::id())->find($validatedData['rental_id']);
-
+        
         if (!$rental) {
             return response()->json(['message' => 'Unauthorized or rental not found'], 403);
         }
-
-        $payment = Payment::create($validatedData);
-
-        return response()->json($payment, 201);
+    
+        // Handle Stripe payment if the method is credit_card
+        if ($validatedData['method'] === 'credit_card') {
+            try {
+                // Set your Stripe secret key
+                Stripe::setApiKey(config('services.stripe.secret'));
+    
+                // Create a Stripe Checkout session
+                //\Stripe\Checkout\Session::create([
+                $session = Session::create([
+                    'payment_method_types' => ['card'],
+                    'line_items' => [[
+                        'price_data' => [
+                            'currency' => 'usd',
+                            'product_data' => [
+                                'name' => 'Rental Payment',
+                            ],
+                            'unit_amount' => $validatedData['amount'] * 100, // Convert to cents
+                        ],
+                        'quantity' => 1,
+                    ]],
+                    'mode' => 'payment',
+                    'success_url' => 'http://127.0.0.1:8000/api/documentation/#/Payments/createPayment?status=success&session_id={CHECKOUT_SESSION_ID}',
+                    'cancel_url' => 'http://127.0.0.1:8000/api/documentation/#/Payments/createPayment?status=cancelled',
+                ]);
+    
+                // Create the payment record (pending status until payment confirmation)
+                $validatedData['status'] = 'pending';
+                $payment = Payment::create($validatedData);
+                
+                // Return the Stripe session URL for frontend redirection
+                return response()->json(['url' => $session->url], 201);
+            } catch (\Exception $e) {
+                // Handle Stripe errors
+                return response()->json(['message' => 'Payment failed: ' . $e->getMessage()], 400);
+            }
+        }
+        
+        // In case of non-credit card payment methods, you may handle them differently
+        return response()->json(['message' => 'Unsupported payment method.'], 400);
     }
-
+    
+    
     /**
      * @OA\Put(
      *     path="/api/payments/{id}",
