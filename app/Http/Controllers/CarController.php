@@ -61,7 +61,7 @@ public function getAll(int $param)
     try {
         // Ensure perPage is a positive integer to avoid issues
         $perPage = $param > 0 ? (int) $param : 10;
-
+// Ensure perPage is a positive integer to avoid issues
         // Fetch paginated cars
         return response()->json(Car::paginate($perPage));
     } catch (\Exception $e) {
