@@ -281,4 +281,77 @@ public function getAll(int $param)
 
         return response()->json(['message' => 'Car deleted successfully']);
     }
+/**
+ * @OA\Get(
+ *     path="/api/cars/filter",
+ *     summary="Filter cars",
+ *     description="Filter cars by optional query parameters like mark, model, year, color, or price.",
+ *     tags={"Cars"},
+ *     @OA\Parameter(
+ *         name="mark",
+ *         in="query",
+ *         description="Car mark",
+ *         required=false,
+ *         @OA\Schema(type="string", example="Toyota")
+ *     ),
+ *     @OA\Parameter(
+ *         name="model",
+ *         in="query",
+ *         description="Car model",
+ *         required=false,
+ *         @OA\Schema(type="string", example="Corolla")
+ *     ),
+ *     @OA\Parameter(
+ *         name="year",
+ *         in="query",
+ *         description="Car year",
+ *         required=false,
+ *         @OA\Schema(type="string", example="2022")
+ *     ),
+ *     @OA\Parameter(
+ *         name="color",
+ *         in="query",
+ *         description="Car color",
+ *         required=false,
+ *         @OA\Schema(type="string", example="Blue")
+ *     ),
+ *     @OA\Parameter(
+ *         name="price",
+ *         in="query",
+ *         description="Filter by price (less than or equal to)",
+ *         required=false,
+ *         @OA\Schema(type="number", format="float", example="20000")
+ *     ),
+ *     @OA\Response(
+ *         response=200,
+ *         description="Filtered list of cars"
+ *     )
+ * )
+ */
+public function filter(Request $request)
+{
+    $query = Car::query();
+
+    if ($request->filled('mark')) {
+        $query->where('mark', $request->input('mark'));
+    }
+
+    if ($request->filled('model')) {
+        $query->where('model', $request->input('model'));
+    }
+
+    if ($request->filled('year')) {
+        $query->where('year', $request->input('year'));
+    }
+
+    if ($request->filled('color')) {
+        $query->where('color', $request->input('color'));
+    }
+
+    if ($request->filled('price')) {
+        $query->where('price', '<=', $request->input('price'));
+    }
+
+    return response()->json($query->get());
+}
 }
