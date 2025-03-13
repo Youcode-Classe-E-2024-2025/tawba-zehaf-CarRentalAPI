@@ -20,190 +20,217 @@ use App\Models\Rental;
  *     @OA\Property(property="updated_at", type="string", format="date-time", example="2023-03-10T12:00:00Z")
  * )
  */
-class RentalController extends Controller
+
+ class RentalController extends Controller
 {
+
+
     /**
-     * @OA\Get(
-     *     path="/api/rentals",
-     *     summary="Get user rentals",
-     *     description="Retrieve all rentals for the authenticated user",
-     *     tags={"Rentals"},
-     *     security={{"sanctum":{}}},
-     *     @OA\Response(
-     *         response=200,
-     *         description="Successful response",
-     *         @OA\JsonContent(
-     *             type="array",
-     *             @OA\Items(ref="#/components/schemas/Rental")
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=401,
-     *         description="Unauthorized",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="message", type="string", example="Unauthorized")
-     *         )
-     *     )
-     * )
-     */
-    public function getUserRentals()
+ * @OA\Get(
+ *     path="/api/rentals",
+ *     summary="Get a list of all rentals",
+ *     tags={"Rentals"},
+ *     security={{"sanctum":{}}},
+ *     @OA\Response(
+ *         response=200,
+ *         description="A list of rentals",
+ *         @OA\JsonContent(
+ *             type="array",
+ *             @OA\Items(ref="#/components/schemas/Rental")
+ *         )
+ *     ),
+ *     @OA\Response(
+ *         response=401,
+ *         description="Unauthorized"
+ *     ),
+ *     @OA\Response(
+ *         response=500,
+ *         description="Internal Server Error"
+ *     )
+ * )
+ */
+
+    public function index()
     {
-        $user = Auth::user(); // Get the authenticated user
-        if (!$user) {
-            return response()->json(['message' => 'Unauthorized'], 401);
-        }
-        $rentals = Rental::where('user_id', $user->id)->get();
-        return response()->json($rentals, 200);
+        // Fetch all rentals from the database
+        $rentals = Rental::all();
+
+        // Return the rentals as a JSON response
+        return response()->json($rentals);
     }
-    
+
+
     /**
      * @OA\Post(
      *     path="/api/rentals",
-     *     summary="Create a new rental",
-     *     description="Create a new rental record for the authenticated user",
+     *     summary="Store a new rental",
+     *     description="Create a new rental entry",
+     *     operationId="storeRental",
      *     tags={"Rentals"},
-     *     security={{"sanctum":{}}},
+     * 
+ *     security={{"sanctum":{}}},
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
-     *             required={"car_id", "start_date", "end_date", "total_amount", "status"},
-     *             @OA\Property(property="car_id", type="integer", example=1),
-     *             @OA\Property(property="start_date", type="string", format="date", example="2023-03-15"),
-     *             @OA\Property(property="end_date", type="string", format="date", example="2023-03-20"),
-     *             @OA\Property(property="total_amount", type="number", format="float", example=250.00),
-     *             @OA\Property(property="status", type="string", enum={"pending", "completed", "cancelled"}, example="pending")
+     *             required={"user_id", "car_id", "start_date", "end_date", "total_amount", "status"},
+     *             @OA\Property(property="user_id", type="integer", example=1),
+     *             @OA\Property(property="car_id", type="integer", example=5),
+     *             @OA\Property(property="start_date", type="string", format="date", example="2025-03-15"),
+     *             @OA\Property(property="end_date", type="string", format="date", example="2025-03-20"),
+     *             @OA\Property(property="total_amount", type="number", format="float", example=250.75),
+     *             @OA\Property(property="status", type="string", example="Confirmed")
      *         )
      *     ),
      *     @OA\Response(
      *         response=201,
      *         description="Rental created successfully",
-     *         @OA\JsonContent(ref="#/components/schemas/Rental")
-     *     ),
-     *     @OA\Response(
-     *         response=422,
-     *         description="Validation error",
      *         @OA\JsonContent(
-     *             @OA\Property(property="message", type="string", example="The given data was invalid."),
-     *             @OA\Property(property="errors", type="object")
+     *             @OA\Property(property="message", type="string", example="Rental created successfully"),
+     *             @OA\Property(property="data", type="object")
      *         )
      *     ),
-     *     @OA\Response(
-     *         response=401,
-     *         description="Unauthorized",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="message", type="string", example="Unauthenticated")
-     *         )
-     *     )
+     *     @OA\Response(response=400, description="Invalid data")
      * )
      */
-    public function create(Request $request)
+    public function store(Request $request)
     {
-        $validatedData = $request->validate([
+
+
+        $request->validate([
+            'user_id' => 'required|exists:users,id',
             'car_id' => 'required|exists:cars,id',
             'start_date' => 'required|date',
-            'end_date' => 'required|date',
+            'end_date' => 'required|date|after_or_equal:start_date',
             'total_amount' => 'required|numeric',
-            'status' => 'required|in:pending,completed,cancelled',
+            'status' => 'required|string',
         ]);
-        
+
         $rental = Rental::create([
-            'user_id' => Auth::id(),
-            'car_id' => $validatedData['car_id'],
-            'start_date' => $validatedData['start_date'],
-            'end_date' => $validatedData['end_date'],
-            'total_amount' => $validatedData['total_amount'],
-            'status' => $validatedData['status'],
+            'user_id' => $request->user_id,
+            'car_id' => $request->car_id,
+            'start_date' => $request->start_date,
+            'end_date' => $request->end_date,
+            'total_amount' => $request->total_amount,
+            'status' => $request->status,
         ]);
-        
-        return response()->json($rental, 201);
+
+        return response()->json([
+            'message' => 'Rental created successfully',
+            'data' => $rental
+        ], 201);
     }
-    
+
+    /**
+     * @OA\Get(
+     *     path="/api/rentals/{id}",
+     *     summary="Show a specific rental",
+     *     description="Retrieve a specific rental by ID",
+     *     operationId="showRental",
+     *     tags={"Rentals"},
+     * 
+ *     security={{"sanctum":{}}},
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         description="Rental ID",
+     *         required=true,
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Rental details",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="data", type="object")
+     *         )
+     *     ),
+     *     @OA\Response(response=404, description="Rental not found")
+     * )
+     */
+    public function show($id)
+    {
+        $rental = Rental::findOrFail($id);
+
+        return response()->json([
+            'data' => $rental
+        ]);
+    }
+
     /**
      * @OA\Put(
      *     path="/api/rentals/{id}",
      *     summary="Update a rental",
-     *     description="Update an existing rental record for the authenticated user",
+     *     description="Update rental details",
+     *     operationId="updateRental",
      *     tags={"Rentals"},
-     *     security={{"sanctum":{}}},
+     * 
+ *     security={{"sanctum":{}}},
      *     @OA\Parameter(
      *         name="id",
      *         in="path",
+     *         description="Rental ID",
      *         required=true,
-     *         description="ID of the rental to update",
-     *         @OA\Schema(type="integer", example=1)
+     *         @OA\Schema(type="integer")
      *     ),
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
-     *             required={"car_id", "start_date", "end_date", "total_amount", "status"},
-     *             @OA\Property(property="car_id", type="integer", example=1),
-     *             @OA\Property(property="start_date", type="string", format="date", example="2023-03-15"),
-     *             @OA\Property(property="end_date", type="string", format="date", example="2023-03-20"),
-     *             @OA\Property(property="total_amount", type="number", format="float", example=250.00),
-     *             @OA\Property(property="status", type="string", enum={"pending", "completed", "cancelled"}, example="completed")
+     *             required={"start_date", "end_date", "total_amount", "status"},
+     *             @OA\Property(property="start_date", type="string", format="date", example="2025-03-15"),
+     *             @OA\Property(property="end_date", type="string", format="date", example="2025-03-20"),
+     *             @OA\Property(property="total_amount", type="number", format="float", example=250.75),
+     *             @OA\Property(property="status", type="string", example="Confirmed")
      *         )
      *     ),
      *     @OA\Response(
      *         response=200,
      *         description="Rental updated successfully",
-     *         @OA\JsonContent(ref="#/components/schemas/Rental")
-     *     ),
-     *     @OA\Response(
-     *         response=404,
-     *         description="Rental not found",
      *         @OA\JsonContent(
-     *             @OA\Property(property="message", type="string", example="Rental not found")
+     *             @OA\Property(property="message", type="string", example="Rental updated successfully"),
+     *             @OA\Property(property="data", type="object")
      *         )
      *     ),
-     *     @OA\Response(
-     *         response=422,
-     *         description="Validation error",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="message", type="string", example="The given data was invalid."),
-     *             @OA\Property(property="errors", type="object")
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=401,
-     *         description="Unauthorized",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="message", type="string", example="Unauthenticated")
-     *         )
-     *     )
+     *     @OA\Response(response=404, description="Rental not found")
      * )
      */
     public function update(Request $request, $id)
     {
-        $rental = Rental::where('user_id', Auth::id())->find($id);
-        if (!$rental) {
-            return response()->json(['message' => 'Rental not found'], 404);
-        }
-        
-        $validatedData = $request->validate([
-            'car_id' => 'required|exists:cars,id',
+        $rental = Rental::findOrFail($id);
+
+        $request->validate([
             'start_date' => 'required|date',
-            'end_date' => 'required|date',
+            'end_date' => 'required|date|after_or_equal:start_date',
             'total_amount' => 'required|numeric',
-            'status' => 'required|in:pending,completed,cancelled',
+            'status' => 'required|string',
         ]);
-        
-        $rental->update($validatedData);
-        return response()->json($rental, 200);
+
+        $rental->update([
+            'start_date' => $request->start_date,
+            'end_date' => $request->end_date,
+            'total_amount' => $request->total_amount,
+            'status' => $request->status,
+        ]);
+
+        return response()->json([
+            'message' => 'Rental updated successfully',
+            'data' => $rental
+        ]);
     }
-    
+
     /**
      * @OA\Delete(
      *     path="/api/rentals/{id}",
      *     summary="Delete a rental",
-     *     description="Delete a rental record by ID",
+     *     description="Delete a specific rental by ID",
+     *     operationId="deleteRental",
      *     tags={"Rentals"},
-     *     security={{"sanctum":{}}},
+     * 
+ *     security={{"sanctum":{}}},
      *     @OA\Parameter(
      *         name="id",
      *         in="path",
+     *         description="Rental ID",
      *         required=true,
-     *         description="ID of the rental to delete",
-     *         @OA\Schema(type="integer", example=1)
+     *         @OA\Schema(type="integer")
      *     ),
      *     @OA\Response(
      *         response=200,
@@ -212,30 +239,16 @@ class RentalController extends Controller
      *             @OA\Property(property="message", type="string", example="Rental deleted successfully")
      *         )
      *     ),
-     *     @OA\Response(
-     *         response=404,
-     *         description="Rental not found",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="message", type="string", example="Rental not found")
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=401,
-     *         description="Unauthorized",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="message", type="string", example="Unauthenticated")
-     *         )
-     *     )
+     *     @OA\Response(response=404, description="Rental not found")
      * )
      */
-    public function delete($id)
+    public function destroy($id)
     {
-        $rental = Rental::where('user_id', Auth::id())->find($id);
-        if (!$rental) {
-            return response()->json(['message' => 'Rental not found'], 404);
-        }
-        
+        $rental = Rental::findOrFail($id);
         $rental->delete();
-        return response()->json(['message' => 'Rental deleted successfully'], 200);
+
+        return response()->json([
+            'message' => 'Rental deleted successfully'
+        ]);
     }
 }
