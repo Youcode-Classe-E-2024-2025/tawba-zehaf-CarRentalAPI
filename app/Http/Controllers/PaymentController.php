@@ -7,8 +7,8 @@ use Stripe\Stripe;
 use Stripe\Charge;
 use Stripe\PaymentIntent;
 
-use Stripe\Checkout\Session;
-// use Stripe\PaymentIntent;
+use Stripe\Checkout\Session as StripeSession;
+
 use Stripe\Exception\ApiErrorException;
 use App\Models\Payment;
 use App\Models\Rental;
@@ -86,8 +86,8 @@ class PaymentController extends Controller
      *             required={"rental_id", "amount", "method", "status"},
      *             @OA\Property(property="rental_id", type="integer", example=1),
      *             @OA\Property(property="amount", type="number", format="float", example=100.50),
-     *             @OA\Property(property="method", type="string", example="Credit Card"),
-     *             @OA\Property(property="status", type="string", example="Completed")
+     *             @OA\Property(property="method", type="string", example="cash"),
+     *             @OA\Property(property="status", type="string", example="completed")
      *         )
      *     ),
      *     @OA\Response(
@@ -103,25 +103,91 @@ class PaymentController extends Controller
      */
     public function store(Request $request)
     {
+        Stripe::setApiKey(config('services.stripe.secret'));
+        
+
         $request->validate([
-            'rental_id' => 'required|exists:rentals,id',
-            'amount' => 'required|numeric',
-            'method' => 'required|string',
-            'status' => 'required|string',
+            
+            'amount' => 'required',
+            "method" => 'required',
+            'rental_id' => 'required',
+            'status' => 'required'
         ]);
+      
+                 $payment = Payment::create([
+                      'amount' => $request->amount,
+                      'method' => $request->method,
+                      'rental_id' => $request->rental_id,
+                      'status' => $request->status
+                 ]);
+        
+        $amountInCents = intval($request->amount * 100);
+        try {
+            $session = StripeSession::create([
+                'payment_method_types' => ['card'],
+                'line_items' => [[
+                    'price_data' => [
+                        'currency'     => 'usd',
+                        'product_data' => [
+                            'name'        => 'Car Rental',
+                            'description' => 'Rental for ' . $request->company . ' ' . $request->model,
+                        ],
+                        'unit_amount' => $amountInCents, // Stripe uses cents
+                    ],
+                    'quantity' => 1,
+                ]],
+                'mode'         => 'payment',
+                'success_url'  => route('payment.success', ['session_id' => '{CHECKOUT_SESSION_ID}']),
+                'cancel_url'   => route('payment.cancel'),
+                'metadata'     => [
+                    'rental_id' => $request->rental_id,
+                ],
+            ]);
 
-        $payment = Payment::create([
-            'rental_id' => $request->rental_id,
-            'amount' => $request->amount,
-            'method' => $request->method,
-            'status' => $request->status,
-        ]);
-
-        return response()->json([
-            'message' => 'Payment created successfully',
-            'data' => $payment
-        ], 201);
+           
+            return response()->json([
+                'checkout_url' => $session->url,
+            ]);
+        } catch (Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
     }
+
+
+    public function success(Request $request)
+    {
+        $sessionId = $request->query('session_id');
+        if (!$sessionId) {
+            return response()->json(['error' => 'Missing session id'], 400);
+        }
+
+        Stripe::setApiKey(config('services.stripe.secret'));
+
+        try {
+            $session = StripeSession::retrieve($sessionId);
+            if ($session->payment_status !== 'paid') {
+                return response()->json(['error' => 'Payment not completed'], 400);
+            }
+            $rentalId = $session->metadata->rental_id;
+
+            return response()->json(['message' => 'Payment successful!']);
+        } catch (Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    public function cancel()
+    {
+        return response()->json(['message' => 'Payment canceled']);
+    }
+
+
+
+
+
+
+
+
 
     /**
      * @OA\Get(
