@@ -4,7 +4,7 @@
         "title": "Laravel",
         "description": "L5 Swagger OpenApi description",
         "contact": {
-            "email": "tawbazehaf@gmail..com"
+            "email": "tawbazehaf@gmail.com"
         },
         "license": {
             "name": "Apache 2.0",
@@ -185,7 +185,7 @@
                     "Cars"
                 ],
                 "summary": "Get a list of all rentals",
-                "operationId": "bea448646e880550621644d3ba5b2633",
+                "operationId": "1fd4f1fdc0da258c5084bcdce4bbe693",
                 "responses": {
                     "200": {
                         "description": "A list of rentals",
@@ -218,7 +218,7 @@
                     "Cars"
                 ],
                 "summary": "Store a new car",
-                "operationId": "d6e9d9d667a9934017f0baaafa712d24",
+                "operationId": "6f519ab2c9767d4d3b1be7cf8f1287ed",
                 "requestBody": {
                     "required": true,
                     "content": {
@@ -288,7 +288,7 @@
                     "Cars"
                 ],
                 "summary": "Show a specific car",
-                "operationId": "56c2f1ab5e047557c7ed97b87349fce8",
+                "operationId": "68c5b9f0863fbcdb57ea5b16ffd7ffa5",
                 "parameters": [
                     {
                         "name": "car",
@@ -332,7 +332,7 @@
                     "Cars"
                 ],
                 "summary": "Update a specific car",
-                "operationId": "77f0e4c401bfb924fb12bfc86b6d6a54",
+                "operationId": "f4dbe64fb6b12478ff8b31e123af6955",
                 "parameters": [
                     {
                         "name": "car",
@@ -410,7 +410,7 @@
                     "Cars"
                 ],
                 "summary": "Delete a specific car",
-                "operationId": "41b5f33df2e94f30bc4b4cd7149c023e",
+                "operationId": "28c41b6ccebfcfbda05ea7272e62c4c4",
                 "parameters": [
                     {
                         "name": "car",
@@ -449,7 +449,7 @@
                     "Cars"
                 ],
                 "summary": "Filter cars by company and model",
-                "operationId": "dfc1d36f42f2541181e6e44261176b40",
+                "operationId": "5fd647fd91ed19cbab2b80d957a9e925",
                 "parameters": [
                     {
                         "name": "company",
@@ -498,13 +498,81 @@
                 ]
             }
         },
+        "/api/cars/filter": {
+            "get": {
+                "tags": [
+                    "Cars"
+                ],
+                "summary": "Filter cars",
+                "description": "Filter cars by optional query parameters like mark, model, year, color, or price.",
+                "operationId": "a35aa12cbe3af8db5a84314371b3d872",
+                "parameters": [
+                    {
+                        "name": "mark",
+                        "in": "query",
+                        "description": "Car mark",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "example": "Toyota"
+                        }
+                    },
+                    {
+                        "name": "model",
+                        "in": "query",
+                        "description": "Car model",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "example": "Corolla"
+                        }
+                    },
+                    {
+                        "name": "year",
+                        "in": "query",
+                        "description": "Car year",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "example": "2022"
+                        }
+                    },
+                    {
+                        "name": "color",
+                        "in": "query",
+                        "description": "Car color",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "example": "Blue"
+                        }
+                    },
+                    {
+                        "name": "price",
+                        "in": "query",
+                        "description": "Filter by price (less than or equal to)",
+                        "required": false,
+                        "schema": {
+                            "type": "number",
+                            "format": "float",
+                            "example": "20000"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Filtered list of cars"
+                    }
+                }
+            }
+        },
         "/api/payments": {
             "get": {
                 "tags": [
                     "Payments"
                 ],
                 "summary": "Get a list of all rentals",
-                "operationId": "5d60a9222dff76d7cf262181c402186c",
+                "operationId": "826dc6b24dd704607aa018a59207dd96",
                 "responses": {
                     "200": {
                         "description": "A list of rentals",
@@ -575,15 +643,18 @@
                     }
                 },
                 "responses": {
-                    "200": {
-                        "description": "Checkout session URL",
+                    "201": {
+                        "description": "Payment created successfully",
                         "content": {
                             "application/json": {
                                 "schema": {
                                     "properties": {
-                                        "checkout_url": {
+                                        "message": {
                                             "type": "string",
-                                            "example": "https://checkout.stripe.com/pay/cs_test_..."
+                                            "example": "Payment created successfully"
+                                        },
+                                        "data": {
+                                            "type": "object"
                                         }
                                     },
                                     "type": "object"
@@ -778,7 +849,7 @@
                 ],
                 "summary": "Get payment by rental ID",
                 "description": "Get the payment for a specific rental by rental_id.",
-                "operationId": "7d494d9c56e67d4e93d4c383fe74ba3b",
+                "operationId": "2474eb8a25ea6f420decd1328c0faf59",
                 "parameters": [
                     {
                         "name": "rental_id",
@@ -821,7 +892,7 @@
                     "Payments"
                 ],
                 "summary": "Get all payments made by a user through their rentals",
-                "operationId": "3848c62da1ec2e2139dd0f4d024be626",
+                "operationId": "5d18be8d74dcca3a8b2a5133377121aa",
                 "parameters": [
                     {
                         "name": "user_id",
@@ -867,7 +938,7 @@
                     "Rentals"
                 ],
                 "summary": "Get a list of all rentals",
-                "operationId": "bc7b4b175d42bf381058901532cd8cee",
+                "operationId": "a19748eac97c416a4a02a73fbcdb4700",
                 "responses": {
                     "200": {
                         "description": "A list of rentals",
@@ -1310,8 +1381,8 @@
         "securitySchemes": {
             "sanctum": {
                 "type": "http",
-                "scheme": "bearer",
-                "bearerFormat": "JWT"
+                "bearerFormat": "JWT",
+                "scheme": "bearer"
             }
         }
     },

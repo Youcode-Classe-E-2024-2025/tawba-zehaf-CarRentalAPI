@@ -6,12 +6,6 @@ use App\Models\Car;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
-/**
- * @OA\Info(
- *     title="Car Rental API",
- *     version="1.0.0"
- * )
- */
 
 /**
  * @OA\Schema(
